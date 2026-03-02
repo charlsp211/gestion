@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NexShop — Panel de Gestión</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { display: ['Syne', 'sans-serif'], body: ['DM Sans', 'sans-serif'] },
+          colors: {
+            ink:   { DEFAULT: '#0D0D0D', 50: '#F5F5F0', 100: '#E8E8E0' },
+            acid:  { DEFAULT: '#C8FF00', dark: '#A0CC00' },
+            slate: { deep: '#1A1A2E', mid: '#2D2D4E', soft: '#4A4A6A' },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    *, body { font-family: 'DM Sans', sans-serif; }
+    h1,h2,h3,h4,.font-display { font-family: 'Syne', sans-serif; }
+
+    :root {
+      --bg: #0D0D1A;
+      --surface: #151528;
+      --surface2: #1E1E38;
+      --border: rgba(255,255,255,0.07);
+      --text: #E8E8FF;
+      --muted: #7070A0;
+      --acid: #C8FF00;
+      --red: #FF4D6D;
+      --blue: #4D9FFF;
+      --purple: #9D6FFF;
+    }
+
+    body { background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 2px; }
+
+    /* Sidebar */
+    #sidebar { background: var(--surface); border-right: 1px solid var(--border); }
+    .nav-item { transition: all .2s; border-radius: 10px; }
+    .nav-item:hover, .nav-item.active { background: var(--surface2); color: var(--acid); }
+    .nav-item.active .nav-icon { color: var(--acid); }
+
+    /* Cards */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; transition: border-color .2s; }
+    .card:hover { border-color: rgba(200,255,0,0.2); }
+
+    /* Stat cards */
+    .stat-card { position: relative; overflow: hidden; }
+    .stat-card::before { content:''; position:absolute; top:-40px; right:-40px; width:120px; height:120px; border-radius:50%; opacity:.08; }
+    .stat-acid::before  { background: var(--acid); }
+    .stat-blue::before  { background: var(--blue); }
+    .stat-red::before   { background: var(--red); }
+    .stat-purple::before{ background: var(--purple); }
+
+    /* Table */
+    table { border-collapse: separate; border-spacing: 0; }
+    thead th { background: var(--surface2); color: var(--muted); font-size:.7rem; letter-spacing:.1em; text-transform:uppercase; font-family:'Syne',sans-serif; }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
+    tbody tr:hover { background: rgba(255,255,255,0.025); }
+    td, th { padding: 14px 16px; }
+
+    /* Badges */
+    .badge { font-size:.65rem; font-family:'Syne',sans-serif; letter-spacing:.08em; font-weight:700; padding:3px 10px; border-radius:20px; text-transform:uppercase; }
+    .badge-pendiente { background:rgba(255,200,0,.12); color:#FFCC00; }
+    .badge-pagado    { background:rgba(200,255,0,.12); color:var(--acid); }
+    .badge-enviado   { background:rgba(77,159,255,.12); color:var(--blue); }
+    .badge-entregado { background:rgba(0,255,160,.12); color:#00FFA0; }
+    .badge-cancelado { background:rgba(255,77,109,.12); color:var(--red); }
+
+    /* Buttons */
+    .btn-acid { background:var(--acid); color:#000; font-family:'Syne',sans-serif; font-weight:700; border-radius:10px; transition:all .2s; }
+    .btn-acid:hover { background:var(--acid); opacity:.85; transform:translateY(-1px); }
+    .btn-ghost { background:var(--surface2); color:var(--text); border-radius:10px; transition:all .2s; }
+    .btn-ghost:hover { background:rgba(255,255,255,.08); }
+    .btn-danger { background:rgba(255,77,109,.15); color:var(--red); border-radius:10px; transition:all .2s; }
+    .btn-danger:hover { background:rgba(255,77,109,.25); }
+
+    /* Form inputs */
+    input, select { background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 10px; padding: 10px 14px; width:100%; font-size:.875rem; transition:border-color .2s; outline:none; }
+    input:focus, select:focus { border-color: var(--acid); }
+    input::placeholder { color: var(--muted); }
+    label { font-size:.75rem; color:var(--muted); font-family:'Syne',sans-serif; letter-spacing:.06em; text-transform:uppercase; margin-bottom:4px; display:block; }
+
+    /* Modal */
+    #modal-overlay { background: rgba(0,0,0,.7); backdrop-filter: blur(6px); }
+
+    /* Toast */
+    #toast { transition: all .3s; }
+
+    /* Loading spinner */
+    .spinner { width:20px; height:20px; border:2px solid rgba(255,255,255,.1); border-top-color:var(--acid); border-radius:50%; animation: spin .6s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    /* Page transitions */
+    .page { animation: fadeIn .25s ease; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+
+    /* Donut chart */
+    .donut { transform: rotate(-90deg); }
+
+    /* Logo */
+    .logo-dot { width:8px; height:8px; background:var(--acid); border-radius:50%; display:inline-block; }
+  </style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div id="toast" class="fixed top-5 right-5 z-50 opacity-0 pointer-events-none">
+  <div id="toast-inner" class="card px-5 py-3 flex items-center gap-3 min-w-48">
+    <span id="toast-icon" class="text-lg">✅</span>
+    <span id="toast-msg" class="text-sm font-medium"></span>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div id="modal-overlay" class="fixed inset-0 z-40 hidden items-center justify-center">
+  <div id="modal-box" class="card w-full max-w-md mx-4 p-6 relative">
+    <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-500 hover:text-white text-xl leading-none">×</button>
+    <h3 id="modal-title" class="font-display text-lg font-bold mb-5"></h3>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<div class="flex h-screen overflow-hidden">
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar" class="w-60 flex-shrink-0 flex flex-col py-6 px-4">
+    <!-- Logo -->
+    <div class="flex items-center gap-2 px-3 mb-8">
+      <span class="logo-dot"></span>
+      <span class="font-display text-xl font-800 tracking-tight">NexShop</span>
+    </div>
+
+    <!-- Nav -->
+    <nav class="flex flex-col gap-1 flex-1">
+      <button onclick="showPage('dashboard')" class="nav-item active flex items-center gap-3 px-3 py-2.5 text-sm text-left" id="nav-dashboard">
+        <span class="nav-icon text-base">📊</span> Dashboard
+      </button>
+      <button onclick="showPage('productos')" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm text-left" id="nav-productos">
+        <span class="nav-icon text-base">📦</span> Productos
+      </button>
+      <button onclick="showPage('clientes')" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm text-left" id="nav-clientes">
+        <span class="nav-icon text-base">👥</span> Clientes
+      </button>
+      <button onclick="showPage('pedidos')" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm text-left" id="nav-pedidos">
+        <span class="nav-icon text-base">🛒</span> Pedidos
+      </button>
+    </nav>
+
+    <!-- API status -->
+    <div class="card px-3 py-3 mt-4">
+      <div class="flex items-center gap-2">
+        <span id="api-dot" class="w-2 h-2 rounded-full bg-yellow-400"></span>
+        <span class="text-xs" style="color:var(--muted)">API Status</span>
+      </div>
+      <p id="api-status" class="text-xs mt-1" style="color:var(--muted)">Conectando...</p>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="flex-1 overflow-y-auto">
+    <div class="p-8">
+
+      <!-- ==================== DASHBOARD ==================== -->
+      <div id="page-dashboard" class="page">
+        <div class="flex items-center justify-between mb-8">
+          <div>
+            <h1 class="font-display text-3xl font-bold">Dashboard</h1>
+            <p class="text-sm mt-1" style="color:var(--muted)">Resumen general del sistema</p>
+          </div>
+          <button onclick="loadDashboard()" class="btn-ghost px-4 py-2 text-sm flex items-center gap-2">
+            <span>↻</span> Actualizar
+          </button>
+        </div>
+
+        <!-- Stat cards -->
+        <div class="grid grid-cols-4 gap-4 mb-8">
+          <div class="card stat-card stat-acid p-5">
+            <p class="text-xs mb-3" style="color:var(--muted);font-family:'Syne',sans-serif;letter-spacing:.08em;text-transform:uppercase;">Productos</p>
+            <p id="stat-productos" class="font-display text-4xl font-bold" style="color:var(--acid)">—</p>
+          </div>
+          <div class="card stat-card stat-blue p-5">
+            <p class="text-xs mb-3" style="color:var(--muted);font-family:'Syne',sans-serif;letter-spacing:.08em;text-transform:uppercase;">Clientes</p>
+            <p id="stat-clientes" class="font-display text-4xl font-bold" style="color:var(--blue)">—</p>
+          </div>
+          <div class="card stat-card stat-purple p-5">
+            <p class="text-xs mb-3" style="color:var(--muted);font-family:'Syne',sans-serif;letter-spacing:.08em;text-transform:uppercase;">Pedidos</p>
+            <p id="stat-pedidos" class="font-display text-4xl font-bold" style="color:var(--purple)">—</p>
+          </div>
+          <div class="card stat-card stat-acid p-5">
+            <p class="text-xs mb-3" style="color:var(--muted);font-family:'Syne',sans-serif;letter-spacing:.08em;text-transform:uppercase;">Ingresos</p>
+            <p id="stat-ingresos" class="font-display text-3xl font-bold" style="color:var(--acid)">—</p>
+          </div>
+        </div>
+
+        <!-- Charts row -->
+        <div class="grid grid-cols-3 gap-4">
+          <!-- Pedidos por estado -->
+          <div class="card p-6 col-span-1">
+            <h3 class="font-display font-bold mb-4">Pedidos por Estado</h3>
+            <div id="estado-chart" class="space-y-3"></div>
+          </div>
+
+          <!-- Últimos pedidos -->
+          <div class="card p-6 col-span-2">
+            <h3 class="font-display font-bold mb-4">Últimos Pedidos</h3>
+            <div id="dash-pedidos" class="space-y-2"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== PRODUCTOS ==================== -->
+      <div id="page-productos" class="page hidden">
+        <div class="flex items-center justify-between mb-8">
+          <div>
+            <h1 class="font-display text-3xl font-bold">Catálogo de Productos</h1>
+            <p class="text-sm mt-1" style="color:var(--muted)">Gestiona el inventario de la tienda</p>
+          </div>
+          <button onclick="abrirModalProducto()" class="btn-acid px-5 py-2.5 text-sm">+ Nuevo Producto</button>
+        </div>
+
+        <!-- Filter bar -->
+        <div class="flex gap-3 mb-5">
+          <input type="text" id="filtro-producto" placeholder="Buscar producto..." class="max-w-xs" oninput="filtrarProductos()" />
+          <select id="filtro-categoria" onchange="filtrarProductos()" class="max-w-xs">
+            <option value="">Todas las categorías</option>
+          </select>
+        </div>
+
+        <div class="card overflow-hidden">
+          <table class="w-full">
+            <thead><tr>
+              <th class="text-left">Producto</th>
+              <th class="text-left">Categoría</th>
+              <th class="text-right">Precio</th>
+              <th class="text-right">Stock</th>
+              <th class="text-center">Estado</th>
+              <th class="text-center">Acciones</th>
+            </tr></thead>
+            <tbody id="tabla-productos"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ==================== CLIENTES ==================== -->
+      <div id="page-clientes" class="page hidden">
+        <div class="flex items-center justify-between mb-8">
+          <div>
+            <h1 class="font-display text-3xl font-bold">Clientes</h1>
+            <p class="text-sm mt-1" style="color:var(--muted)">Directorio de clientes registrados</p>
+          </div>
+          <button onclick="abrirModalCliente()" class="btn-acid px-5 py-2.5 text-sm">+ Nuevo Cliente</button>
+        </div>
+
+        <div class="card overflow-hidden">
+          <table class="w-full">
+            <thead><tr>
+              <th class="text-left">Cliente</th>
+              <th class="text-left">Email</th>
+              <th class="text-left">Teléfono</th>
+              <th class="text-center">Pedidos</th>
+              <th class="text-center">Estado</th>
+            </tr></thead>
+            <tbody id="tabla-clientes"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ==================== PEDIDOS ==================== -->
+      <div id="page-pedidos" class="page hidden">
+        <div class="flex items-center justify-between mb-8">
+          <div>
+            <h1 class="font-display text-3xl font-bold">Pedidos</h1>
+            <p class="text-sm mt-1" style="color:var(--muted)">Gestión de órdenes de compra</p>
+          </div>
+          <button onclick="abrirModalPedido()" class="btn-acid px-5 py-2.5 text-sm">+ Nuevo Pedido</button>
+        </div>
+
+        <!-- Estado filter -->
+        <div class="flex gap-2 mb-5 flex-wrap">
+          <button onclick="filtrarPedidos('')" id="fpd-all" class="btn-acid text-xs px-4 py-2">Todos</button>
+          <button onclick="filtrarPedidos('pendiente')" id="fpd-pendiente" class="btn-ghost text-xs px-4 py-2">Pendiente</button>
+          <button onclick="filtrarPedidos('pagado')" id="fpd-pagado" class="btn-ghost text-xs px-4 py-2">Pagado</button>
+          <button onclick="filtrarPedidos('enviado')" id="fpd-enviado" class="btn-ghost text-xs px-4 py-2">Enviado</button>
+          <button onclick="filtrarPedidos('entregado')" id="fpd-entregado" class="btn-ghost text-xs px-4 py-2">Entregado</button>
+          <button onclick="filtrarPedidos('cancelado')" id="fpd-cancelado" class="btn-ghost text-xs px-4 py-2">Cancelado</button>
+        </div>
+
+        <div class="card overflow-hidden">
+          <table class="w-full">
+            <thead><tr>
+              <th class="text-left">Pedido</th>
+              <th class="text-left">Cliente ID</th>
+              <th class="text-right">Total</th>
+              <th class="text-center">Estado</th>
+              <th class="text-left">Fecha</th>
+              <th class="text-center">Acciones</th>
+            </tr></thead>
+            <tbody id="tabla-pedidos"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+const API = 'http://localhost:5000/api';
+let allProductos = [], allClientes = [], allPedidos = [];
+let filtroPedidoEstado = '';
+
+// ===================== NAVIGATION =====================
+function showPage(name) {
+  ['dashboard','productos','clientes','pedidos'].forEach(p => {
+    document.getElementById('page-'+p).classList.toggle('hidden', p !== name);
+    const nav = document.getElementById('nav-'+p);
+    nav.classList.toggle('active', p === name);
+  });
+  if (name === 'dashboard') loadDashboard();
+  if (name === 'productos') loadProductos();
+  if (name === 'clientes')  loadClientes();
+  if (name === 'pedidos')   loadPedidos();
+}
+
+// ===================== API HELPER =====================
+async function api(path, opts = {}) {
+  try {
+    const r = await fetch(API + path, {
+      headers: { 'Content-Type': 'application/json' },
+      ...opts
+    });
+    return await r.json();
+  } catch (e) {
+    return null;
+  }
+}
+
+// ===================== TOAST =====================
+function toast(msg, type = 'ok') {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  document.getElementById('toast-icon').textContent = type === 'ok' ? '✅' : type === 'err' ? '❌' : 'ℹ️';
+  t.classList.remove('opacity-0','pointer-events-none');
+  t.classList.add('opacity-100');
+  setTimeout(() => { t.classList.add('opacity-0','pointer-events-none'); t.classList.remove('opacity-100'); }, 3000);
+}
+
+// ===================== MODAL =====================
+function openModal(title, html) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = html;
+  const ov = document.getElementById('modal-overlay');
+  ov.classList.remove('hidden');
+  ov.classList.add('flex');
+}
+function closeModal() {
+  const ov = document.getElementById('modal-overlay');
+  ov.classList.add('hidden');
+  ov.classList.remove('flex');
+}
+
+// ===================== API STATUS =====================
+async function checkAPI() {
+  const r = await api('/estadisticas');
+  const dot = document.getElementById('api-dot');
+  const status = document.getElementById('api-status');
+  if (r) {
+    dot.style.background = 'var(--acid)';
+    status.textContent = 'Conectado ✓';
+    status.style.color = 'var(--acid)';
+  } else {
+    dot.style.background = 'var(--red)';
+    status.textContent = 'Sin conexión';
+    status.style.color = 'var(--red)';
+  }
+}
+
+// ===================== DASHBOARD =====================
+async function loadDashboard() {
+  const r = await api('/estadisticas');
+  if (!r) { toast('No se pudo conectar con la API', 'err'); return; }
+  const d = r.datos;
+  document.getElementById('stat-productos').textContent = d.total_productos;
+  document.getElementById('stat-clientes').textContent  = d.total_clientes;
+  document.getElementById('stat-pedidos').textContent   = d.total_pedidos;
+  document.getElementById('stat-ingresos').textContent  = '$' + d.ingresos_confirmados.toFixed(2);
+
+  // Estado chart bars
+  const estados = d.pedidos_por_estado || {};
+  const colors = { pendiente:'#FFCC00', pagado:'var(--acid)', enviado:'var(--blue)', entregado:'#00FFA0', cancelado:'var(--red)' };
+  const total = Object.values(estados).reduce((a,b)=>a+b,0) || 1;
+  document.getElementById('estado-chart').innerHTML = Object.entries(estados).map(([k,v])=>`
+    <div>
+      <div class="flex justify-between text-xs mb-1">
+        <span style="color:var(--muted);text-transform:capitalize">${k}</span>
+        <span style="color:${colors[k]||'white'};font-family:'Syne',sans-serif;font-weight:700">${v}</span>
+      </div>
+      <div style="background:var(--surface2);border-radius:4px;height:6px;overflow:hidden">
+        <div style="width:${Math.round(v/total*100)}%;height:100%;background:${colors[k]||'white'};border-radius:4px;transition:width .6s"></div>
+      </div>
+    </div>`).join('') || '<p style="color:var(--muted)" class="text-sm">Sin pedidos aún</p>';
+
+  // Last pedidos
+  const pr = await api('/estadisticas');
+  const pedRes = await fetch(API + '/estadisticas').catch(()=>null);
+  // Fetch all pedidos for dash preview
+  const todos = await api('/productos'); // just to keep api alive
+  // Use clientes to get pedidos
+  const cl = await api('/clientes');
+  let pedidosList = [];
+  if (cl && cl.datos) {
+    for (const c of cl.datos.slice(0,5)) {
+      const pp = await api(`/clientes/${c.id}/pedidos`);
+      if (pp && pp.datos) pedidosList.push(...pp.datos);
+    }
+  }
+  pedidosList.sort((a,b)=> new Date(b.fecha_creacion)-new Date(a.fecha_creacion));
+  document.getElementById('dash-pedidos').innerHTML = pedidosList.slice(0,6).map(p=>`
+    <div class="flex items-center justify-between py-2" style="border-bottom:1px solid var(--border)">
+      <div class="flex items-center gap-3">
+        <span class="font-display text-sm font-bold" style="color:var(--muted)">#${p.id}</span>
+        <span class="text-sm">Cliente ${p.cliente_id}</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <span class="text-sm font-bold" style="color:var(--acid)">$${p.total.toFixed(2)}</span>
+        <span class="badge badge-${p.estado}">${p.estado}</span>
+      </div>
+    </div>`).join('') || '<p style="color:var(--muted)" class="text-sm">Sin pedidos aún</p>';
+}
+
+// ===================== PRODUCTOS =====================
+async function loadProductos() {
+  const r = await api('/productos');
+  if (!r) { toast('Error al cargar productos','err'); return; }
+  allProductos = r.datos || [];
+  renderProductos(allProductos);
+
+  // Populate category filter
+  const cats = [...new Set(allProductos.map(p=>p.categoria))];
+  const sel = document.getElementById('filtro-categoria');
+  sel.innerHTML = '<option value="">Todas las categorías</option>' + cats.map(c=>`<option>${c}</option>`).join('');
+}
+
+function renderProductos(list) {
+  document.getElementById('tabla-productos').innerHTML = list.map(p=>`
+    <tr>
+      <td>
+        <div class="font-medium">${p.nombre}</div>
+        ${p.tipo === 'digital' ? '<span class="text-xs" style="color:var(--purple)">● Digital</span>' : ''}
+      </td>
+      <td><span class="badge" style="background:rgba(77,159,255,.1);color:var(--blue)">${p.categoria}</span></td>
+      <td class="text-right font-bold" style="color:var(--acid)">$${p.precio.toFixed(2)}</td>
+      <td class="text-right">
+        <span style="color:${p.stock < 5 ? 'var(--red)' : 'inherit'}">${p.stock === 9999 ? '∞' : p.stock}</span>
+      </td>
+      <td class="text-center">
+        <span class="badge" style="background:${p.activo ? 'rgba(200,255,0,.1)' : 'rgba(255,77,109,.1)'};color:${p.activo ? 'var(--acid)':'var(--red)'}">
+          ${p.activo ? 'Activo' : 'Inactivo'}
+        </span>
+      </td>
+      <td class="text-center">
+        <button onclick="abrirModalEditarProducto(${p.id})" class="btn-ghost px-3 py-1 text-xs mr-1">Editar</button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="6" class="text-center py-8" style="color:var(--muted)">No hay productos</td></tr>';
+}
+
+function filtrarProductos() {
+  const q = document.getElementById('filtro-producto').value.toLowerCase();
+  const cat = document.getElementById('filtro-categoria').value;
+  renderProductos(allProductos.filter(p =>
+    (!q || p.nombre.toLowerCase().includes(q)) &&
+    (!cat || p.categoria === cat)
+  ));
+}
+
+function abrirModalProducto() {
+  openModal('Nuevo Producto', `
+    <div class="space-y-4">
+      <div><label>Nombre</label><input id="np-nombre" placeholder="Ej: Laptop HP 15" /></div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label>Precio ($)</label><input id="np-precio" type="number" step="0.01" placeholder="0.00" /></div>
+        <div><label>Stock</label><input id="np-stock" type="number" placeholder="0" /></div>
+      </div>
+      <div><label>Categoría</label><input id="np-categoria" placeholder="Ej: Tecnología" /></div>
+      <button onclick="crearProducto()" class="btn-acid w-full py-2.5 text-sm mt-2">Crear Producto</button>
+    </div>`);
+}
+
+async function crearProducto() {
+  const body = {
+    nombre: document.getElementById('np-nombre').value,
+    precio: parseFloat(document.getElementById('np-precio').value),
+    stock: parseInt(document.getElementById('np-stock').value),
+    categoria: document.getElementById('np-categoria').value
+  };
+  if (!body.nombre || !body.categoria || isNaN(body.precio)) { toast('Completa todos los campos','err'); return; }
+  const r = await api('/productos', { method:'POST', body: JSON.stringify(body) });
+  if (r && r.datos) { closeModal(); toast('Producto creado ✓'); loadProductos(); }
+  else toast('Error al crear producto','err');
+}
+
+function abrirModalEditarProducto(id) {
+  const p = allProductos.find(x=>x.id===id);
+  if (!p) return;
+  openModal('Editar Producto', `
+    <div class="space-y-4">
+      <div><label>Nombre</label><input id="ep-nombre" value="${p.nombre}" /></div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label>Precio ($)</label><input id="ep-precio" type="number" step="0.01" value="${p.precio}" /></div>
+        <div><label>Stock</label><input id="ep-stock" type="number" value="${p.stock === 9999 ? 0 : p.stock}" /></div>
+      </div>
+      <button onclick="editarProducto(${id})" class="btn-acid w-full py-2.5 text-sm mt-2">Guardar Cambios</button>
+    </div>`);
+}
+
+async function editarProducto(id) {
+  const body = {
+    nombre: document.getElementById('ep-nombre').value,
+    precio: parseFloat(document.getElementById('ep-precio').value),
+    stock: parseInt(document.getElementById('ep-stock').value),
+  };
+  const r = await api('/productos/'+id, { method:'PUT', body: JSON.stringify(body) });
+  if (r && r.datos) { closeModal(); toast('Producto actualizado ✓'); loadProductos(); }
+  else toast('Error al actualizar','err');
+}
+
+// ===================== CLIENTES =====================
+async function loadClientes() {
+  const r = await api('/clientes');
+  if (!r) { toast('Error al cargar clientes','err'); return; }
+  allClientes = r.datos || [];
+
+  // Count pedidos per client
+  const conteo = {};
+  for (const c of allClientes) {
+    const pp = await api(`/clientes/${c.id}/pedidos`);
+    conteo[c.id] = pp ? pp.datos.length : 0;
+  }
+
+  document.getElementById('tabla-clientes').innerHTML = allClientes.map(c=>`
+    <tr>
+      <td>
+        <div class="flex items-center gap-3">
+          <div style="width:34px;height:34px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;font-size:.75rem;color:var(--acid)">
+            ${c.nombre.charAt(0).toUpperCase()}
+          </div>
+          <span class="font-medium">${c.nombre}</span>
+        </div>
+      </td>
+      <td style="color:var(--muted)">${c.email}</td>
+      <td style="color:var(--muted)">${c.telefono || '—'}</td>
+      <td class="text-center">
+        <span class="font-display font-bold" style="color:var(--blue)">${conteo[c.id] || 0}</span>
+      </td>
+      <td class="text-center">
+        <span class="badge" style="background:rgba(200,255,0,.1);color:var(--acid)">Activo</span>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="5" class="text-center py-8" style="color:var(--muted)">No hay clientes</td></tr>';
+}
+
+function abrirModalCliente() {
+  openModal('Registrar Cliente', `
+    <div class="space-y-4">
+      <div><label>Nombre completo</label><input id="nc-nombre" placeholder="Ej: Ana García" /></div>
+      <div><label>Email</label><input id="nc-email" type="email" placeholder="ana@email.com" /></div>
+      <div><label>Teléfono</label><input id="nc-tel" placeholder="0991234567" /></div>
+      <button onclick="crearCliente()" class="btn-acid w-full py-2.5 text-sm mt-2">Registrar Cliente</button>
+    </div>`);
+}
+
+async function crearCliente() {
+  const body = {
+    nombre: document.getElementById('nc-nombre').value,
+    email: document.getElementById('nc-email').value,
+    telefono: document.getElementById('nc-tel').value
+  };
+  if (!body.nombre || !body.email) { toast('Nombre y email son requeridos','err'); return; }
+  const r = await api('/clientes', { method:'POST', body: JSON.stringify(body) });
+  if (r && r.datos) { closeModal(); toast('Cliente registrado ✓'); loadClientes(); }
+  else toast(r?.error || 'Error al registrar','err');
+}
+
+// ===================== PEDIDOS =====================
+async function loadPedidos() {
+  const cl = await api('/clientes');
+  if (!cl) { toast('Error al cargar pedidos','err'); return; }
+  allPedidos = [];
+  for (const c of cl.datos || []) {
+    const pp = await api(`/clientes/${c.id}/pedidos`);
+    if (pp && pp.datos) allPedidos.push(...pp.datos);
+  }
+  allPedidos.sort((a,b)=>new Date(b.fecha_creacion)-new Date(a.fecha_creacion));
+  renderPedidos(allPedidos);
+}
+
+function renderPedidos(list) {
+  document.getElementById('tabla-pedidos').innerHTML = list.map(p=>`
+    <tr>
+      <td><span class="font-display font-bold" style="color:var(--muted)">#${String(p.id).padStart(4,'0')}</span></td>
+      <td>Cliente <span style="color:var(--blue);font-weight:600">${p.cliente_id}</span></td>
+      <td class="text-right font-bold" style="color:var(--acid)">$${p.total.toFixed(2)}</td>
+      <td class="text-center"><span class="badge badge-${p.estado}">${p.estado}</span></td>
+      <td style="color:var(--muted);font-size:.75rem">${new Date(p.fecha_creacion).toLocaleDateString('es-EC',{day:'2-digit',month:'short',year:'numeric'})}</td>
+      <td class="text-center">
+        <button onclick="verPedido(${p.id})" class="btn-ghost px-3 py-1 text-xs mr-1">Ver</button>
+        ${p.estado === 'pendiente' ? `<button onclick="cambiarEstadoPedido(${p.id},'pagado')" class="btn-acid px-3 py-1 text-xs mr-1">Pagar</button>` : ''}
+        ${['pendiente','pagado'].includes(p.estado) ? `<button onclick="cancelarPedido(${p.id})" class="btn-danger px-3 py-1 text-xs">Cancelar</button>` : ''}
+      </td>
+    </tr>`).join('') || '<tr><td colspan="6" class="text-center py-8" style="color:var(--muted)">No hay pedidos</td></tr>';
+}
+
+function filtrarPedidos(estado) {
+  filtroPedidoEstado = estado;
+  document.querySelectorAll('[id^="fpd-"]').forEach(b => { b.className = 'btn-ghost text-xs px-4 py-2'; });
+  const key = estado || 'all';
+  const btn = document.getElementById('fpd-'+key);
+  if (btn) btn.className = 'btn-acid text-xs px-4 py-2';
+  renderPedidos(estado ? allPedidos.filter(p=>p.estado===estado) : allPedidos);
+}
+
+function verPedido(id) {
+  const p = allPedidos.find(x=>x.id===id);
+  if (!p) return;
+  openModal(`Pedido #${String(id).padStart(4,'0')}`, `
+    <div class="space-y-4">
+      <div class="flex justify-between text-sm">
+        <span style="color:var(--muted)">Cliente ID</span>
+        <span style="color:var(--blue);font-weight:600">${p.cliente_id}</span>
+      </div>
+      <div class="flex justify-between text-sm">
+        <span style="color:var(--muted)">Estado</span>
+        <span class="badge badge-${p.estado}">${p.estado}</span>
+      </div>
+      <div class="flex justify-between text-sm">
+        <span style="color:var(--muted)">Fecha</span>
+        <span>${new Date(p.fecha_creacion).toLocaleString('es-EC')}</span>
+      </div>
+      <hr style="border-color:var(--border)" />
+      <div class="space-y-2">
+        ${(p.lineas||[]).map(l=>`
+          <div class="flex justify-between text-sm">
+            <span>${l.producto_nombre} × ${l.cantidad}</span>
+            <span style="color:var(--acid);font-weight:700">$${l.subtotal.toFixed(2)}</span>
+          </div>`).join('') || '<p style="color:var(--muted)">Sin productos</p>'}
+      </div>
+      <hr style="border-color:var(--border)" />
+      <div class="flex justify-between">
+        <span class="font-display font-bold">Total</span>
+        <span class="font-display text-xl font-bold" style="color:var(--acid)">$${p.total.toFixed(2)}</span>
+      </div>
+      <div class="flex gap-2 mt-2">
+        ${p.estado === 'pagado' ? `<button onclick="cambiarEstadoPedido(${p.id},'enviado');closeModal()" class="btn-ghost flex-1 py-2 text-sm">Marcar Enviado</button>` : ''}
+        ${p.estado === 'enviado' ? `<button onclick="cambiarEstadoPedido(${p.id},'entregado');closeModal()" class="btn-acid flex-1 py-2 text-sm">Marcar Entregado</button>` : ''}
+      </div>
+    </div>`);
+}
+
+async function cambiarEstadoPedido(id, estado) {
+  const r = await api('/pedidos/'+id+'/estado', { method:'PATCH', body: JSON.stringify({estado}) });
+  if (r && r.datos) { toast(`Estado → ${estado} ✓`); loadPedidos(); }
+  else toast('Error al cambiar estado','err');
+}
+
+async function cancelarPedido(id) {
+  if (!confirm('¿Cancelar este pedido? Se devolverá el stock.')) return;
+  const r = await api('/pedidos/'+id, { method:'DELETE' });
+  if (r && r.datos) { toast('Pedido cancelado'); loadPedidos(); }
+  else toast(r?.error || 'No se pudo cancelar','err');
+}
+
+function abrirModalPedido() {
+  const optsClientes = allClientes.map(c=>`<option value="${c.id}">${c.nombre} (ID: ${c.id})</option>`).join('');
+  const optsProductos = allProductos.filter(p=>p.activo).map(p=>`<option value="${p.id}">${p.nombre} — $${p.precio.toFixed(2)} (stock: ${p.stock === 9999 ? '∞' : p.stock})</option>`).join('');
+  openModal('Nuevo Pedido', `
+    <div class="space-y-4">
+      <div><label>Cliente</label>
+        <select id="np2-cliente">${optsClientes || '<option>No hay clientes</option>'}</select>
+      </div>
+      <div><label>Producto</label>
+        <select id="np2-producto">${optsProductos || '<option>No hay productos</option>'}</select>
+      </div>
+      <div><label>Cantidad</label><input id="np2-cantidad" type="number" value="1" min="1" /></div>
+      <button onclick="crearPedido()" class="btn-acid w-full py-2.5 text-sm mt-2">Crear Pedido</button>
+    </div>`);
+}
+
+async function crearPedido() {
+  const body = {
+    cliente_id: parseInt(document.getElementById('np2-cliente').value),
+    items: [{ producto_id: parseInt(document.getElementById('np2-producto').value), cantidad: parseInt(document.getElementById('np2-cantidad').value) }]
+  };
+  const r = await api('/pedidos', { method:'POST', body: JSON.stringify(body) });
+  if (r && r.datos) { closeModal(); toast('Pedido creado ✓'); loadPedidos(); }
+  else toast(r?.error || 'Error al crear pedido','err');
+}
+
+// ===================== INIT =====================
+checkAPI();
+loadDashboard();
+</script>
+</body>
+</html>
